@@ -93,7 +93,8 @@ If there is a possibility to use some sort of dependency injection, we can simpl
         }
     }
     
-    // Dispatches the action to singleton store. This way it can be safely dispatched from any point in the code.
+    // Dispatches the action to singleton store. 
+    // This way it can be safely dispatched from any point in the code.
     CounterStore.IncrementByOne().dispatch()
 
 
