@@ -2,7 +2,7 @@
 
 [![License](https://img.shields.io/badge/license-MIT-ff69b4.svg)](https://github.com/kzlekk/AsyncDispatcher/raw/master/LICENSE)
 ![Language](https://img.shields.io/badge/swift-5.5-orange.svg)
-![Coverage Status](https://img.shields.io/badge/coverage-96%25-brightgreen)
+![Coverage Status](https://img.shields.io/badge/coverage-96.7%25-brightgreen)
 
 AsyncDispatcher is a lightweight **Dispatcher** implementation of **Flux** pattern. 
 
@@ -54,6 +54,23 @@ Example **Action** implementation which is tied to the **CounterDispatcher** fro
     
 ```
 
+It is possible to execute actions from another action allowing to make action composition:
+ 
+```swift
+
+    extension CounterStore {
+     
+        struct IncrementByThree: Action {
+            func execute(with store: CounterStore) async {
+                await store.execute(Increment())
+                await store.execute(Increment())
+                await store.execute(Increment())
+            }
+        }
+    }
+    
+```
+
 To change the state of the **CounterStore** from the examples above, we need to dispatch supported action:
 
 ```swift
@@ -76,12 +93,14 @@ If there is a possibility to use some sort of dependency injection, we can simpl
     protocol CounterStoreAction where Dispatcher == CounterStore {}
     
     extension CounterStoreAction {
-    
-        @Inject(\.counterStore) // Injected from IoC container 
-        var store: CounterStore
+        @MainActor func dispatch() {
+            await Dependencies.default.counterStore.dispatch(self)
+        }
         
         func dispatch() {
-            store.dispatch(self)
+            Task { @MainActor in
+                await Dependencies.default.counterStore.dispatch(self)
+            }
         }
     }
     
@@ -93,7 +112,7 @@ If there is a possibility to use some sort of dependency injection, we can simpl
         }
     }
     
-    // Dispatches the action to singleton store. 
+    // Dispatches the action to singleton store to be executed the main thread. 
     // This way it can be safely dispatched from any point in the code.
     CounterStore.IncrementByOne().dispatch()
 

@@ -52,14 +52,22 @@ class DispatcherTests: QuickSpec {
                 expect(subject.isDispatching).toEventually(beTrue())
                 expect(subject.pipeline.count).toEventually(equal(2))
                 expect(subject.value).toEventually(equal("async test finish"))
-                
             }
             
-            it("can await for action to finish dispatching") {
+            it("can await for async action to finish dispatching") {
                 waitUntil { done in
                     Task { [subject] in
                         await subject!.dispatch(MockDispatcher.AsyncChange(value: "await dispatch test"))
                         expect(subject!.value).to(equal("await dispatch test"))
+                        done()
+                    }
+                }
+            }
+            
+            it("can await for conventional action to finish executing") {
+                waitUntil { done in
+                    subject!.dispatch(MockDispatcher.AsyncChange(value: "dispatch completion test")) {
+                        expect(subject!.value).to(equal("dispatch completion test"))
                         done()
                     }
                 }

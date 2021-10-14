@@ -62,8 +62,12 @@ public extension Dispatcher {
     /// Actions from pipeline are executed serially in FIFO order, right after the previous action finishes dispatching.
     /// - Parameters:
     ///   - action: The action to dispatch.
-    func dispatch<T: Action>(_ action: T) where T.Dispatcher == Self {
-        Task { await dispatch(action) }
+    ///   - completion: The completion block called upon the action is finished executing
+    func dispatch<T: Action>(_ action: T, completion: (() -> Void)? = nil) where T.Dispatcher == Self {
+        Task {
+            await dispatch(action)
+            completion?()
+        }
     }
 
     /// Unconditionally executes the action on current queue. NOTE: It is not recommended to execute actions directly.
@@ -86,9 +90,14 @@ public extension Dispatcher {
     /// Unconditionally executes the action on current queue. NOTE: It is not recommended to execute actions directly.
     /// Use "execute" to apply an action immediately inside async "dispatched" action without locking the queue.
     ///
-    /// - Parameter action: The action to execute.
-    func execute<T: Action>(_ action: T) where T.Dispatcher == Self {
-        Task { await execute(action) }
+    /// - Parameters
+    ///   - action: The action to dispatch.
+    ///   - completion: The completion block called upon the action is finished executing
+    func execute<T: Action>(_ action: T, completion: (() -> Void)? = nil) where T.Dispatcher == Self {
+        Task {
+            await execute(action)
+            completion?()
+        }
     }
 }
 
