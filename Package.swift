@@ -16,8 +16,8 @@ let package = Package(
                  targets: ["AsyncDispatcher"]),
     ],
     dependencies: [
-        .package(name: "Quick", url: "https://github.com/Quick/Quick", from: "4.0.0"),
-        .package(name: "Nimble", url: "https://github.com/Quick/Nimble", from: "9.0.0"),
+        .package(name: "Quick", url: "https://github.com/Quick/Quick", from: "5.0.0"),
+        .package(name: "Nimble", url: "https://github.com/Quick/Nimble", from: "10.0.0"),
     ],
     targets: [
         .target(name: "AsyncDispatcher",

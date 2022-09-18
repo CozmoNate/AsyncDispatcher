@@ -23,7 +23,9 @@ class MiddlewareTests: QuickSpec {
                 
                 beforeEach {
                     subject.shouldExecute = false
-                    store.dispatch(MockDispatcher.Change(value: "test"))
+                    Task { [store] in
+                        await store?.dispatch(MockDispatcher.Change(value: "test"))
+                    }
                 }
             
                 it("can prevent the action for being executed") {

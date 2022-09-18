@@ -32,9 +32,13 @@ class DispatcherTests: QuickSpec {
                 subject = MockDispatcher()
             }
             
-            it("can execute actions and appropriately change state") {
-                subject.execute(MockDispatcher.Change(value: "sync test"))
-                subject.execute(MockDispatcher.AsyncChange(value: "async test"))
+            it("can execute actions immediately and appropriately change state") {
+                Task { [subject] in
+                    await subject?.execute(MockDispatcher.Change(value: "sync test"))
+                }
+                Task { [subject] in
+                    await subject?.execute(MockDispatcher.AsyncChange(value: "async test"))
+                }
                 
                 expect(subject.value).toEventually(equal("sync test"))
                 expect(subject.value).toEventually(equal("async test"))
@@ -44,33 +48,20 @@ class DispatcherTests: QuickSpec {
                 expect(subject.value).to(equal("initial"))
                 expect(subject.isDispatching).to(beFalse())
                 expect(subject.pipeline.isEmpty).to(beTrue())
-                
-                subject.dispatch(MockDispatcher.AsyncChange(value: "async test"))
-                subject.dispatch(MockDispatcher.AsyncChange(value: "async test after"))
-                subject.dispatch(MockDispatcher.Change(value: "async test finish"))
-                
+
+                Task { [subject] in
+                    await subject?.dispatch(MockDispatcher.AsyncChange(value: "async test"))
+                }
+                Task { [subject] in
+                    await subject?.dispatch(MockDispatcher.AsyncChange(value: "async test after"))
+                }
+                Task { [subject] in
+                    await subject?.dispatch(MockDispatcher.Change(value: "async test finish"))
+                }
+
                 expect(subject.isDispatching).toEventually(beTrue())
                 expect(subject.pipeline.count).toEventually(equal(2))
                 expect(subject.value).toEventually(equal("async test finish"))
-            }
-            
-            it("can await for async action to finish dispatching") {
-                waitUntil { done in
-                    Task { [subject] in
-                        await subject!.dispatch(MockDispatcher.AsyncChange(value: "await dispatch test"))
-                        expect(subject!.value).to(equal("await dispatch test"))
-                        done()
-                    }
-                }
-            }
-            
-            it("can await for conventional action to finish executing") {
-                waitUntil { done in
-                    subject!.dispatch(MockDispatcher.AsyncChange(value: "dispatch completion test")) {
-                        expect(subject!.value).to(equal("dispatch completion test"))
-                        done()
-                    }
-                }
             }
         }
     }

@@ -56,19 +56,6 @@ public extension Dispatcher {
             await actionItem()
         }
     }
-    
-    /// Executes the action immediately or postpones the action if another async action is executing at the moment.
-    /// If dispatched while an async action is executing, the action will be send to the pipeline.
-    /// Actions from pipeline are executed serially in FIFO order, right after the previous action finishes dispatching.
-    /// - Parameters:
-    ///   - action: The action to dispatch.
-    ///   - completion: The completion block called upon the action is finished executing
-    func dispatch<T: Action>(_ action: T, completion: (() -> Void)? = nil) where T.Dispatcher == Self {
-        Task {
-            await dispatch(action)
-            completion?()
-        }
-    }
 
     /// Unconditionally executes the action on current queue. NOTE: It is not recommended to execute actions directly.
     /// Use "execute" to apply an action immediately inside async "dispatched" action without locking the queue.
@@ -84,19 +71,6 @@ public extension Dispatcher {
             middlewares.forEach { $0.dispatcher(self, willExecute: action) }
             await action.execute(with: self)
             middlewares.forEach { $0.dispatcher(self, didExecute: action) }
-        }
-    }
-    
-    /// Unconditionally executes the action on current queue. NOTE: It is not recommended to execute actions directly.
-    /// Use "execute" to apply an action immediately inside async "dispatched" action without locking the queue.
-    ///
-    /// - Parameters
-    ///   - action: The action to dispatch.
-    ///   - completion: The completion block called upon the action is finished executing
-    func execute<T: Action>(_ action: T, completion: (() -> Void)? = nil) where T.Dispatcher == Self {
-        Task {
-            await execute(action)
-            completion?()
         }
     }
 }
