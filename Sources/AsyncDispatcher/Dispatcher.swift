@@ -23,7 +23,7 @@
 
 import Foundation
 
-/// Dispatcher is an object allowing to dispatch actions and provides infrastructure for action to perform job
+/// Dispatcher is an object allowing to dispatch actions and provides infrastructure for actions to perform their job
 public protocol Dispatcher: AnyObject {
     
     /// The queue of postponed actions

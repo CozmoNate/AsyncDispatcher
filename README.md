@@ -118,3 +118,92 @@ If there is a possibility to use some sort of dependency injection, we can simpl
 
 
 ``` 
+
+## Advanced Usage
+
+### Concurrent access and race conditions
+
+AsyncDispatcher does not implement any thread safety mechanism by default allowing developers to decide on synchronization mechanics suitable for their specific use cases.
+
+As an example of basic thread safety, you can extend default **Action** and specify it for synchronous **Dispatcher** as following:
+
+```swift
+
+import AsyncDispatcher
+
+public protocol ActingDispatcher: AsyncDispatcher.Dispatcher {
+    
+    // This method always dispatches actions using synchronization mechanic decided by Dispatcher 
+    func schedule<T: Action>(_ action: T) async where T.Dispatcher == Self
+}
+
+public protocol DispatchingAction: Action where Self.Dispatcher: ActingDispatcher {
+    
+    var defaultDispatcher: Self.Dispatcher { get }
+    
+    func dispatch() async
+    func schedule(completion: (() -> Void)?)
+    func schedule(after delay: DispatchTime, completion: (() -> Void)?)
+}
+
+public extension DispatchingAction {
+    
+    func dispatch() async {
+        await defaultDispatcher.schedule(self)
+    }
+    
+    func schedule(completion: (() -> Void)? = nil) {
+        Task {
+            await defaultDispatcher.schedule(self)
+            completion?()
+        }
+    }
+    
+    func schedule(after delay: DispatchTime, completion: (() -> Void)? = nil) {
+        DispatchQueue.global().asyncAfter(deadline: delay) { 
+            Task {
+                await defaultDispatcher.schedule(self)
+                completion?()
+            }
+        }
+    }
+}
+
+
+```
+
+And following is the implementation of basic background queue **ActingDispatcher** which uses **globalActor**. This one uses **globalActor** to dispatch actions on background thread. This is related to only dispatching and executing actions. Accessing state can be implemented via the same or any other actor. Actions can decide themselves which actor they are using when *execute* function called by dispatcher.
+
+```swift
+
+// Actions adopting SimpleFlowAction will be scheduled using shared SimpleFlow dispatcher and on background thread.
+// This does not enforce the action to perform *execute* function with the same actor, it can use any other actor
+public protocol SimpleFlowAction: DispatchingAction, where Dispatcher == SimpleFlow {}
+
+public extension SimpleFlowAction {
+    
+    var defaultDispatcher: SimpleFlow {
+        SimpleFlow.sharedDispatcher
+    }
+}
+
+@globalActor final actor SimpleFlowActor: GlobalActor {
+    
+    static let shared = SimpleFlowActor()
+}
+
+public final class SimpleFlow: ActingDispatcher {
+    
+    public static let sharedDispatcher = SimpleFlow()
+    
+    // These must be accessed from the same actor which was used to execute actions
+    public var pipeline = Pipeline()
+    public var middlewares = []
+    public var isDispatching = false
+    
+    public func schedule<T>(_ action: T) async where SimpleFlow == T.Dispatcher, T : Action {
+        await Task { @SimpleFlowActor in await dispatch(action) }.value
+    }
+}
+
+```
