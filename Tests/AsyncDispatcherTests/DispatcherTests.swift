@@ -2,8 +2,7 @@
 //  Copyright © 2020 Natan Zalkin. All rights reserved.
 //
 
-import Quick
-import Nimble
+import XCTest
 
 @testable import AsyncDispatcher
 
@@ -23,46 +22,40 @@ extension Pipeline {
     
 }
 
-class DispatcherTests: QuickSpec {
-    override func spec() {
-        describe("Dispatcher") {
-            var subject: MockDispatcher!
-            
-            beforeEach {
-                subject = MockDispatcher()
-            }
-            
-            it("can execute actions immediately and appropriately change state") {
-                Task { [subject] in
-                    await subject?.execute(MockDispatcher.Change(value: "sync test"))
-                }
-                Task { [subject] in
-                    await subject?.execute(MockDispatcher.AsyncChange(value: "async test"))
-                }
-                
-                expect(subject.value).toEventually(equal("sync test"))
-                expect(subject.value).toEventually(equal("async test"))
-            }
-            
-            it("can dispatch actions and appropriately change state") {
-                expect(subject.value).to(equal("initial"))
-                expect(subject.isDispatching).to(beFalse())
-                expect(subject.pipeline.isEmpty).to(beTrue())
+class DispatcherTests: XCTestCase {
+    
+    var subject: MockDispatcher!
+    
+    override func setUp() {
+        super.setUp()
+        // Put setup code here. This method is called before the invocation of each test method in the class.
+        subject = MockDispatcher()
+    }
+    
+    override func tearDown() {
+        // Put teardown code here. This method is called after the invocation of each test method in the class.
+        
+        super.tearDown()
+    }
+    
+    @MainActor func testDispatcherActionImmediateExecution() async {
+        await subject.execute(MockDispatcher.Change(value: "sync test"))
+        XCTAssertEqual(subject.value, "sync test")
+        await subject.execute(MockDispatcher.AsyncChange(value: "async test"))
+        XCTAssertEqual(subject.value, "async test")
+    }
+    
+    @MainActor func testDispatcherActionScheduledExecution() async {
+        XCTAssertEqual(subject.value, "initial")
+        
+        Task { await self.subject.dispatch(MockDispatcher.AsyncChange(value: "async test")) }
+        Task { await self.subject.dispatch(MockDispatcher.AsyncChange(value: "async test after")) }
+        Task { await self.subject.dispatch(MockDispatcher.Change(value: "async test finish")) }
 
-                Task { [subject] in
-                    await subject?.dispatch(MockDispatcher.AsyncChange(value: "async test"))
-                }
-                Task { [subject] in
-                    await subject?.dispatch(MockDispatcher.AsyncChange(value: "async test after"))
-                }
-                Task { [subject] in
-                    await subject?.dispatch(MockDispatcher.Change(value: "async test finish"))
-                }
-
-                expect(subject.isDispatching).toEventually(beTrue())
-                expect(subject.pipeline.count).toEventually(equal(2))
-                expect(subject.value).toEventually(equal("async test finish"))
-            }
-        }
+        repeat {
+            await Task.yield()
+        } while await subject.isDispatching
+        
+        XCTAssertEqual(subject.value, "async test finish")
     }
 }
