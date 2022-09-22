@@ -6,12 +6,24 @@ import Foundation
 
 @testable import AsyncDispatcher
 
-class MockDispatcher: Dispatcher {
+@globalActor actor MockDispatcher: Dispatcher, GlobalActor {
+    
+    static var shared = MockDispatcher()
+
+    @MainActor private(set) var value = "initial"
+    @MainActor private(set) var number = 0
+    
+    var pipeline = Pipeline()
+    var middlewares = [MockMiddleware()] as Array<Middleware>
+    var isDispatching = false
+}
+
+extension MockDispatcher {
     
     struct Change: Action {
         let value: String
         
-        func execute(with store: MockDispatcher) async {
+        @MainActor func execute(with store: MockDispatcher) async {
             store.value = value
         }
     }
@@ -35,15 +47,8 @@ class MockDispatcher: Dispatcher {
     struct Update: Action {
         let number: Int
         
-        func execute(with store: MockDispatcher) async {
+        @MainActor func execute(with store: MockDispatcher) async {
             store.number = number
         }
     }
-    
-    private(set) var value = "initial"
-    private(set) var number = 0
-    
-    var pipeline = Pipeline()
-    var middlewares = [MockMiddleware()] as Array<Middleware>
-    var isDispatching = false
 }

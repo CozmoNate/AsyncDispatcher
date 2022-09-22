@@ -12,18 +12,11 @@ let package = Package(
         .watchOS(.v8)
     ],
     products: [
-        .library(name: "AsyncDispatcher",
-                 targets: ["AsyncDispatcher"]),
-    ],
-    dependencies: [
-        .package(name: "Quick", url: "https://github.com/Quick/Quick", from: "5.0.0"),
-        .package(name: "Nimble", url: "https://github.com/Quick/Nimble", from: "10.0.0"),
+        .library(name: "AsyncDispatcher", targets: ["AsyncDispatcher"]),
     ],
     targets: [
-        .target(name: "AsyncDispatcher",
-                dependencies: []),
-        .testTarget(name: "AsyncDispatcherTests",
-                    dependencies: ["AsyncDispatcher", "Quick", "Nimble"]),
+        .target(name: "AsyncDispatcher", dependencies: []),
+        .testTarget(name: "AsyncDispatcherTests", dependencies: ["AsyncDispatcher"]),
     ],
     swiftLanguageVersions: [ .v5 ]
 )

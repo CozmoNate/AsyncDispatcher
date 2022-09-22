@@ -24,7 +24,7 @@
 import Foundation
 
 /// Dispatcher is an object allowing to dispatch actions and provides infrastructure for actions to perform their job
-public protocol Dispatcher: AnyObject {
+public protocol Dispatcher: Actor {
     
     /// The queue of postponed actions
     var pipeline: Pipeline { get set }
@@ -39,8 +39,8 @@ public protocol Dispatcher: AnyObject {
 public extension Dispatcher {
     
     /// Executes the action immediately or postpones the action if another async action is executing at the moment.
-    /// If dispatched while an async action is executing, the action will be send to the pipeline.
-    /// Actions from pipeline are executed serially in FIFO order, right after the previous action finishes dispatching.
+    /// Actions from pipeline are executed serially in FIFO order, right after the previous action finished dispatching.
+    ///
     /// - Parameters:
     ///   - action: The action to dispatch.
     func dispatch<T: Action>(_ action: T) async where T.Dispatcher == Self {
@@ -57,8 +57,7 @@ public extension Dispatcher {
         }
     }
 
-    /// Unconditionally executes the action on current queue. NOTE: It is not recommended to execute actions directly.
-    /// Use "execute" to apply an action immediately inside async "dispatched" action without locking the queue.
+    /// Unconditionally executes the action bypassing pipelining.
     ///
     /// - Parameter action: The action to execute.
     func execute<T: Action>(_ action: T) async where T.Dispatcher == Self {
