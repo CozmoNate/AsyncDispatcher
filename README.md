@@ -2,7 +2,7 @@
 
 [![License](https://img.shields.io/badge/license-MIT-ff69b4.svg)](https://github.com/kzlekk/AsyncDispatcher/raw/master/LICENSE)
 ![Language](https://img.shields.io/badge/swift-5.5-orange.svg)
-![Coverage Status](https://img.shields.io/badge/coverage-91.4%25-brightgreen)
+![Coverage Status](https://img.shields.io/badge/coverage-100%25-brightgreen)
 
 AsyncDispatcher is a lightweight **Dispatcher** implementation of **Flux** pattern. 
 

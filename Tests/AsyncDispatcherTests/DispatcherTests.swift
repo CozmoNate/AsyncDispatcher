@@ -6,22 +6,6 @@ import XCTest
 
 @testable import AsyncDispatcher
 
-extension Pipeline {
-    
-    var count: Int {
-        guard var item = head else {
-            return 0
-        }
-        var count = 1
-        while let next = item.next {
-            count += 1
-            item = next
-        }
-        return count
-    }
-    
-}
-
 class DispatcherTests: XCTestCase {
     
     var subject: MockDispatcher!

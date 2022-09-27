@@ -22,9 +22,12 @@
  */
 
 import Foundation
+import Collections
 
 /// Dispatcher is an object allowing to dispatch actions and provides infrastructure for actions to perform their job
 public protocol Dispatcher: Actor {
+    
+    typealias Pipeline = Deque<() async -> Void>
     
     /// The queue of postponed actions
     var pipeline: Pipeline { get set }
@@ -45,12 +48,11 @@ public extension Dispatcher {
     ///   - action: The action to dispatch.
     func dispatch<T: Action>(_ action: T) async where T.Dispatcher == Self {
         let actionItem: () async -> Void = { [weak self] in
-            guard let self = self else { return }
-            await self.execute(action)
-            await self.flush()
+            await self?.execute(action)
+            await self?.flush()
         }
         if isDispatching {
-            pipeline.postpone(actionItem)
+            pipeline.append(actionItem)
         } else {
             isDispatching = true
             await actionItem()
@@ -79,7 +81,9 @@ internal extension Dispatcher {
 
     /// Try to flush the pipeline by executing next action
     func flush() async {
-        if await pipeline.flush() {
+        if let next = pipeline.popFirst() {
+            await next()
+        } else {
             isDispatching = false
         }
     }
