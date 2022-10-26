@@ -6,16 +6,25 @@ import Foundation
 
 @testable import AsyncDispatcher
 
-@globalActor actor MockDispatcher: Dispatcher, GlobalActor {
+actor MockDispatcher: Dispatcher {
     
     static var shared = MockDispatcher()
 
-    @MainActor private(set) var value = "initial"
-    @MainActor private(set) var number = 0
+    @MainActor private(set) var values = ["initial"]
     
     var pipeline = Pipeline()
     var middlewares = [MockMiddleware()] as Array<Middleware>
+    var isActive = true
     var isDispatching = false
+    
+    @discardableResult func waitUntilFinished() async -> Int {
+        var ticks = 0
+        repeat {
+            await Task.yield()
+            ticks += 1
+        } while isDispatching
+        return ticks
+    }
 }
 
 extension MockDispatcher {
@@ -24,31 +33,16 @@ extension MockDispatcher {
         let value: String
         
         @MainActor func execute(with store: MockDispatcher) async {
-            store.value = value
+            store.values.append(value) 
         }
     }
     
     struct AsyncChange: Action {
         let value: String
         
-        func execute(with store: MockDispatcher) async {
-            return await withCheckedContinuation { continuation in
-                DispatchQueue.global().asyncAfter(deadline: .now() + .milliseconds(250)) {
-                    DispatchQueue.main.async {
-                        store.value = value
-                        continuation.resume()
-                    }
-                }
-            }
-            
-        }
-    }
-    
-    struct Update: Action {
-        let number: Int
-        
         @MainActor func execute(with store: MockDispatcher) async {
-            store.number = number
+            try! await Task<Never, Never>.sleep(nanoseconds: UInt64(0.5 * 1_000_000_000))
+            store.values.append(value)
         }
     }
 }

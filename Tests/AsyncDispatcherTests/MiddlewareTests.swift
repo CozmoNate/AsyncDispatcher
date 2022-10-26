@@ -8,14 +8,14 @@ import XCTest
 
 class MiddlewareTests: XCTestCase {
     
-    var store: MockDispatcher!
+    var dispatcher: MockDispatcher!
     var subject: MockMiddleware!
     
     override func setUp() async throws {
         try await super.setUp()
         // Put setup code here. This method is called before the invocation of each test method in the class.
-        store = MockDispatcher()
-        subject = (await store.middlewares[0]) as? MockMiddleware
+        dispatcher = MockDispatcher()
+        subject = (await dispatcher.middlewares[0]) as? MockMiddleware
     }
     
     override func tearDown() {
@@ -27,7 +27,8 @@ class MiddlewareTests: XCTestCase {
     func testMiddlewareCanPreventActionExecution() async {
         subject.shouldExecute = false
         
-        await store.dispatch(MockDispatcher.Change(value: "test"))
+        await dispatcher.dispatch(MockDispatcher.Change(value: "test"))
+        await dispatcher.waitUntilFinished()
         
         XCTAssert(subject.lastAskedAction is MockDispatcher.Change)
         XCTAssertNotNil(subject.lastAskedAction)
@@ -37,7 +38,8 @@ class MiddlewareTests: XCTestCase {
     func testMiddlewareTrackActionExecution() async {
         subject.shouldExecute = true
         
-        await store.dispatch(MockDispatcher.Change(value: "test"))
+        await dispatcher.dispatch(MockDispatcher.Change(value: "test"))
+        await dispatcher.waitUntilFinished()
         
         XCTAssert(subject.lastAskedAction is MockDispatcher.Change)
         XCTAssertNotNil(subject.lastAskedAction)
