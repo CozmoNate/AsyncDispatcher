@@ -27,12 +27,13 @@ import Collections
 /// Dispatcher is an object allowing to dispatch actions and provides infrastructure for actions to perform their job
 public protocol Dispatcher: Actor {
     
-    typealias Pipeline = Deque<() async -> Void>
+    typealias Block = () async -> Void
+    typealias Pipeline = Deque<Block>
     
-    /// The queue of postponed actions
+    /// The queue of actions
     var pipeline: Pipeline { get set }
     
-    /// The list of objects that are conforming to Middleware protocol and receive events when the action is executed
+    /// The list of objects receiving event when the action is about to execute and decide if the action should be allowed to execute
     var middlewares: [Middleware] { get set }
     
     /// The flag indicating that an action is allowed to be executed
@@ -44,40 +45,35 @@ public protocol Dispatcher: Actor {
 
 public extension Dispatcher {
     
-    /// Activates dispatcher and starts executing postponed actions.
+    /// Activates the dispatcher and starts dispatching actions.
     func activate() {
         isActive = true
         if !isDispatching {
-            isDispatching = true
-            Task {
-                await flush()
-            }
+            flush()
         }
     }
     
-    /// Deactivates dispatcher. All new actions dispatched will be postponed and put into pipeline while dispatcher is inactive.
+    /// Deactivates the dispatcher.
+    /// All new actions dispatched will be postponed and put waiting until dispatcher is active again.
     /// Action which being executed at the moment will not be cancelled.
     func deactivate() {
         isActive = false
     }
     
-    /// Executes the action immediately or postpones the action if another async action is executing at the moment.
-    /// Actions from pipeline are executed serially in FIFO order, right after the previous action finished dispatching.
+    /// Puts the action into the pipeline of actions and execute it in the next cycles.
+    /// Actions are executed serially in FIFO order.
+    /// Only one action will be executed at a time and dispatcher will wait until it finished to execute next action.
+    /// There is no restrictions on direct execution or dispatching of other actions inside action body.
     ///
     /// - Parameters:
     ///   - action: The action to dispatch.
     func dispatch<T: Action>(_ action: T) where T.Dispatcher == Self {
-        if !isActive || isDispatching {
-            pipeline.append({ [weak self] in
-                await self?.execute(action)
-                await self?.flush()
-            })
-        } else {
-            isDispatching = true
-            Task {
-                await execute(action)
-                await flush()
-            }
+        pipeline.append({ [weak self] in
+            await self?.execute(action)
+            await self?.flush()
+        })
+        if !isDispatching {
+            flush()
         }
     }
 
@@ -90,7 +86,6 @@ public extension Dispatcher {
                 result = middleware.dispatcher(self, shouldExecute: action)
             }
         }
-        
         if shouldExecute  {
             middlewares.forEach { $0.dispatcher(self, willExecute: action) }
             await action.execute(with: self)
@@ -103,9 +98,10 @@ public extension Dispatcher {
 internal extension Dispatcher {
     
     /// Try to flush the pipeline by executing next action
-    func flush() async {
+    func flush() {
         if isActive, let next = pipeline.popFirst() {
-            await next()
+            isDispatching = true
+            Task { await next() }
         } else {
             isDispatching = false
         }

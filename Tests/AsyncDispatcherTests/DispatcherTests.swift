@@ -63,7 +63,7 @@ class DispatcherTests: XCTestCase {
         isBusy = await subject.isDispatching
         isEmpty = await subject.pipeline.isEmpty
         
-        XCTAssertFalse(isBusy, "dispatcher should NOT busy")
+        XCTAssertFalse(isBusy, "dispatcher should NOT be busy")
         XCTAssertFalse(isEmpty, "pipeline should NOT be empty")
 
         await subject.activate() // This should execute all the actions
