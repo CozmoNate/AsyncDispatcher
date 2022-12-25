@@ -4,9 +4,7 @@
 ![Language](https://img.shields.io/badge/swift-5.5-orange.svg)
 ![Coverage Status](https://img.shields.io/badge/coverage-100%25-brightgreen)
 
-AsyncDispatcher is a lightweight **Dispatcher** implementation of **Flux** pattern. 
-
-**Dispatcher** protocol provides methods and properties allowing to control data flow by sending and handling actions serially but still executing them asynchronously using async/await pattern. **Dispatcher** can be used for state management of business logic components or/and UI components. Current **Dispatcher** design is based on the experience from building couple of commercial and personal projects, and efforts of simplifying state management code and trying not to dictate state container implementation too much.
+**AsyncDispatcher** is a library utilizing actors and async/await mechanics and ensures that all operations (called actions) are dispatched and executed serially. **AsyncDispatcher** can be used for state management of domain logic components or/and UI components.
 
 ## Installation
 
